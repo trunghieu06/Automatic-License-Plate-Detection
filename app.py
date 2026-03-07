@@ -17,7 +17,7 @@ st.markdown("Hệ thống tích hợp YOLOv8, EasyOCR và Heuristic Rules để 
 @st.cache_resource
 def load_models():
     # Đảm bảo đường dẫn này đúng với máy của bạn
-    yolo_model = YOLO('runs/detect/alpr_v1_6gb_vram/weights/best.pt')
+    yolo_model = YOLO('best.pt')
     ocr_reader = easyocr.Reader(['en'])
     return yolo_model, ocr_reader
 

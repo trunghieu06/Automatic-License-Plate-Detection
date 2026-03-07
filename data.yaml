@@ -1,6 +1,9 @@
-train: data_images/train
-val: data_images/test
+# Đường dẫn tương đối từ file train.py
+train: datasets/train/images
+val: datasets/val/images
+
+# Số lượng lớp (biển số xe = 1)
 nc: 1
-names: [
-    'license_plate'
-]
+
+# Tên các lớp
+names: ['license_plate']

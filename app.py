@@ -152,11 +152,22 @@ elif app_mode == "Camera trực tiếp (Live)":
         return av.VideoFrame.from_ndarray(processed_img, format="bgr24")
 
     # Khởi chạy giao diện Camera WebRTC
+    # Khởi chạy giao diện Camera WebRTC
     webrtc_streamer(
         key="alpr-camera",
         video_frame_callback=video_frame_callback,
         rtc_configuration={  
             "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
         },
-        media_stream_constraints={"video": True, "audio": False} # Chỉ lấy hình, tắt mic
+        # SỬA LỖI 1: Ép điện thoại mở Camera sau (environment) thay vì Selfie (user)
+        media_stream_constraints={
+            "video": {"facingMode": "environment"}, 
+            "audio": False
+        },
+        # SỬA LỖI 2: Fix lỗi dải hẹp, ép khung video mở rộng 100% màn hình
+        video_html_attrs={
+            "style": {"width": "100%", "margin": "0 auto", "border": "2px solid #00FF00"},
+            "controls": False,
+            "autoPlay": True,
+        }
     )

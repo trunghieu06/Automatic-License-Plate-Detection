@@ -1,7 +1,7 @@
 import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 from ultralytics import YOLO
 import easyocr
 import re
@@ -109,8 +109,12 @@ if app_mode == "Tải ảnh lên (Upload)":
     st.header("🖼️ Nhận diện qua Hình ảnh")
     uploaded_file = st.file_uploader("Tải lên ảnh chứa biển số xe", type=["jpg", "jpeg", "png"])
     
+
     if uploaded_file is not None:
         image = Image.open(uploaded_file)
+        
+        image = ImageOps.exif_transpose(image) 
+        
         img_array = np.array(image.convert('RGB'))
         img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
 
@@ -131,39 +135,28 @@ if app_mode == "Tải ảnh lên (Upload)":
 
 elif app_mode == "Camera trực tiếp (Live)":
     st.header("🎥 Nhận diện qua Camera (Real-time)")
-    st.markdown("Nhấn **Start Camera** để bắt đầu thu hình và nhận diện trực tiếp.")
+    st.markdown("Đưa biển số vào khung hình camera để hệ thống nhận diện.")
     
-    run_camera = st.checkbox("Bật/Tắt Camera")
-    frame_placeholder = st.empty()
-    
-    if run_camera:
-        cap = cv2.VideoCapture(0) # 0 là camera mặc định của laptop
-        while run_camera:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("Không thể kết nối với Camera!")
-                break
-                
-            # Xử lý frame video giống hệt hàm process_video của bạn
-            results = model(frame, conf=0.5, verbose=False)[0]
-            for box in results.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                plate_crop = frame[y1:y2, x1:x2]
-                if plate_crop.size == 0: continue
-                    
-                processed = improve_ocr_input(plate_crop)
-                ocr_res = reader.readtext(processed, allowlist='0123456789ABCDEFGHJKLMNPQRSTUVWXYZ-.')
-                current_plate_text = format_vietnamese_plate(ocr_res)
-                
-                stable_text = get_stable_plate(current_plate_text)
-                
-                if stable_text:
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 3)
-                    cv2.putText(frame, f"STABLE: {stable_text}", (x1, y1 - 10), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+    from streamlit_webrtc import webrtc_streamer
+    import av
 
-            # Convert để Streamlit hiển thị
-            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_placeholder.image(frame_rgb, channels="RGB")
-            
-        cap.release()
+    # Hàm xử lý từng frame video truyền từ điện thoại/webcam lên
+    def video_frame_callback(frame):
+        # Lấy frame ảnh
+        img = frame.to_ndarray(format="bgr24")
+        
+        # Đưa qua Pipeline nhận diện biển số của bạn
+        processed_img, _ = core_pipeline(img)
+        
+        # Trả ảnh đã vẽ khung về lại màn hình
+        return av.VideoFrame.from_ndarray(processed_img, format="bgr24")
+
+    # Khởi chạy giao diện Camera WebRTC
+    webrtc_streamer(
+        key="alpr-camera",
+        video_frame_callback=video_frame_callback,
+        rtc_configuration={  
+            "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+        },
+        media_stream_constraints={"video": True, "audio": False} # Chỉ lấy hình, tắt mic
+    )

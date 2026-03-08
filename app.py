@@ -152,7 +152,6 @@ elif app_mode == "Camera trực tiếp (Live)":
         return av.VideoFrame.from_ndarray(processed_img, format="bgr24")
 
     # Khởi chạy giao diện Camera WebRTC
-    # Khởi chạy giao diện Camera WebRTC
     webrtc_streamer(
         key="alpr-camera",
         video_frame_callback=video_frame_callback,
